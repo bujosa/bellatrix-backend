@@ -1,0 +1,18 @@
+version: "3"
+services:
+  web:
+    build: .
+    ports:
+      - "8080:8080"
+    volumes:
+      - .:/app
+    depends_on:
+      - db
+    environment:
+      - MONGODB_URI=mongodb://db:27017/bellatrix
+  db:
+    image: mongo:4.4
+    volumes:
+      - mongodb_data:/data/db
+volumes:
+  mongodb_data:
