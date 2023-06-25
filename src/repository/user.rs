@@ -1,14 +1,14 @@
 use bcrypt::{hash, verify, DEFAULT_COST};
 use bson::{doc, oid::ObjectId, to_document};
 use futures::StreamExt;
-use mongodb::{options::FindOptions, Collection};
+use mongodb::{error::Error, options::FindOptions, results::InsertOneResult, Collection};
 use serde::{Deserialize, Serialize};
 
 use crate::models::user::{CreateUserDto, UpdateUserDto};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct User {
-    #[serde(rename = "_id")]
+    #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
     pub id: Option<ObjectId>,
     pub username: String,
     #[serde(rename = "profilePicture")]
@@ -55,24 +55,23 @@ impl UserRepository {
         users
     }
 
-    pub async fn create(&self, mut create_user_dto: CreateUserDto) -> ObjectId {
-        let hashed_password = hash(&create_user_dto.password, DEFAULT_COST).unwrap();
-        create_user_dto.password = hashed_password;
-
+    pub async fn create(&self, create_user_dto: CreateUserDto) -> Result<InsertOneResult, Error> {
         let create_user_dto: User = User {
             id: None,
             username: create_user_dto.username,
             email: create_user_dto.email,
-            password: create_user_dto.password,
             profile_picture: create_user_dto.profile_picture,
+            password: self.get_hashed_password(&create_user_dto.password),
         };
 
-        let result = self
+        let user = self
             .collection
             .insert_one(create_user_dto, None)
             .await
-            .unwrap();
-        result.inserted_id.as_object_id().unwrap().to_owned()
+            .ok()
+            .expect("Error creating user");
+
+        Ok(user)
     }
 
     pub async fn delete(&self, id: ObjectId) -> bool {
@@ -103,5 +102,9 @@ impl UserRepository {
             .unwrap()
             .unwrap();
         verify(password, &user.password).unwrap()
+    }
+
+    fn get_hashed_password(&self, password: &str) -> String {
+        hash(password, DEFAULT_COST).unwrap().to_string()
     }
 }
