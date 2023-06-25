@@ -4,8 +4,9 @@ use actix_web::{delete, get, post, put, web, HttpResponse, Responder, Scope};
 use bson::oid::ObjectId;
 
 use crate::{
+    database::repositories::Repositories,
     models::user::{CreateUserDto, UpdateUserDto},
-    repository::user::{User, UserRepository},
+    repository::user::UserRepository,
 };
 
 #[post("")]
@@ -76,8 +77,8 @@ async fn get_all_users(
 }
 
 #[get("")]
-async fn get_all_users_without_params(user_repo: web::Data<UserRepository>) -> impl Responder {
-    let users = user_repo.get_all(0, 10).await;
+async fn get_all_users_without_params(data: web::Data<Repositories>) -> impl Responder {
+    let users = data.user_repository.get_all(0, 10).await;
     HttpResponse::Ok().json(users)
 }
 
