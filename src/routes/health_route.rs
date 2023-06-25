@@ -2,7 +2,7 @@ use actix_web::{get, Responder};
 
 use crate::models::response::Response;
 
-#[get("/api/health")]
+#[get("")]
 pub async fn healthcheck() -> impl Responder {
     let response = Response {
         message: "Everything is working fine".to_string(),
