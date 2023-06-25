@@ -2,22 +2,10 @@ use bcrypt::{hash, verify, DEFAULT_COST};
 use bson::{doc, oid::ObjectId, to_document};
 use futures::StreamExt;
 use mongodb::{error::Error, options::FindOptions, results::InsertOneResult, Collection};
-use serde::{Deserialize, Serialize};
 
-use crate::models::user::{CreateUserDto, UpdateUserDto};
+use crate::models::user::{CreateUserDto, UpdateUserDto, User};
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct User {
-    #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
-    pub id: Option<ObjectId>,
-    pub username: String,
-    #[serde(rename = "profilePicture")]
-    pub profile_picture: Option<String>,
-    pub email: String,
-    pub password: String,
-}
-
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct UserRepository {
     collection: Collection<User>,
 }
