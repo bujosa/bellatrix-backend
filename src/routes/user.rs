@@ -20,9 +20,18 @@ async fn create_user(
     let user: Result<mongodb::results::InsertOneResult, mongodb::error::Error> =
         user_repo.create(create_user_dto).await;
 
-    let id = user.unwrap().inserted_id.as_object_id().unwrap().to_hex();
-
-    HttpResponse::Created().json(json!({ "id": id }))
+    match user {
+        Ok(result) => {
+            let id = result.inserted_id.as_object_id().unwrap().to_hex();
+            HttpResponse::Created().json(json!({ "id": id }))
+        }
+        Err(e) => {
+            if e.to_string().contains("E11000") {
+                return HttpResponse::BadRequest().json(json!({ "error": "Email already exists" }));
+            }
+            HttpResponse::InternalServerError().finish()
+        }
+    }
 }
 
 #[get("/{id}")]

@@ -17,7 +17,9 @@ async fn main() -> std::io::Result<()> {
     let mongodb = MongoDb::init().await;
     let client = mongodb.get_client();
     let db = client.database("bellatrix");
-    let repositories = Repositories::new(db);
+    let repositories = Repositories::new(db)
+        .await
+        .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
 
     // Enable the Cors
     HttpServer::new(move || {
