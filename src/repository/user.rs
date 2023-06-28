@@ -105,10 +105,6 @@ impl UserRepository {
         verify(password, &user.password).unwrap()
     }
 
-    fn get_hashed_password(&self, password: &str) -> String {
-        hash(password, DEFAULT_COST).unwrap().to_string()
-    }
-
     async fn create_index(&self) -> Result<(), mongodb::error::Error> {
         let index_options = mongodb::options::IndexOptions::builder()
             .unique(true)
@@ -122,5 +118,9 @@ impl UserRepository {
         self.collection.create_index(index_model, None).await?;
 
         Ok(())
+    }
+
+    fn get_hashed_password(&self, password: &str) -> String {
+        hash(password, DEFAULT_COST).unwrap().to_string()
     }
 }

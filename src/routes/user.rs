@@ -34,6 +34,21 @@ async fn create_user(
     }
 }
 
+#[post("/login")]
+async fn login(data: web::Data<Repositories>, req: web::Json<CreateUserDto>) -> impl Responder {
+    let create_user_dto: CreateUserDto = req.into_inner();
+    let user_repo = data.user_repository.clone();
+    let verified = user_repo
+        .verify_password(&create_user_dto.email, &create_user_dto.password)
+        .await;
+
+    if verified {
+        HttpResponse::Ok().finish()
+    } else {
+        HttpResponse::Unauthorized().finish()
+    }
+}
+
 #[get("/{id}")]
 async fn get_user(data: web::Data<Repositories>, id: web::Path<String>) -> impl Responder {
     let object_id = ObjectId::from_str(&id).unwrap();
@@ -99,7 +114,7 @@ async fn get_all_users_without_params(data: web::Data<Repositories>) -> impl Res
 }
 
 pub fn user_routes() -> Scope {
-    web::scope("/api/users")
+    web::scope("/users")
         .service(create_user)
         .service(get_user)
         .service(delete_user)
