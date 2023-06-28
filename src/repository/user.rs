@@ -1,9 +1,10 @@
+use crate::models::user::{CreateUserDto, UpdateUserDto, User};
 use bcrypt::{hash, verify, DEFAULT_COST};
 use bson::{doc, oid::ObjectId, to_document};
 use futures::StreamExt;
-use mongodb::{error::Error, options::FindOptions, results::InsertOneResult, Collection};
-
-use crate::models::user::{CreateUserDto, UpdateUserDto, User};
+use mongodb::{
+    error::Error, options::FindOptions, results::InsertOneResult, Collection, IndexModel,
+};
 
 #[derive(Clone, Debug)]
 pub struct UserRepository {
@@ -11,8 +12,14 @@ pub struct UserRepository {
 }
 
 impl UserRepository {
-    pub fn new(collection: Collection<User>) -> Self {
-        Self { collection }
+    pub async fn new(collection: Collection<User>) -> Result<Self, mongodb::error::Error> {
+        let user_repository = Self {
+            collection: collection,
+        };
+
+        user_repository.create_index().await?;
+
+        Ok(user_repository)
     }
 
     pub async fn get(&self, id: ObjectId) -> Option<User> {
@@ -52,14 +59,10 @@ impl UserRepository {
             password: self.get_hashed_password(&create_user_dto.password),
         };
 
-        let user = self
-            .collection
-            .insert_one(create_user_dto, None)
-            .await
-            .ok()
-            .expect("Error creating user");
-
-        Ok(user)
+        match self.collection.insert_one(create_user_dto, None).await {
+            Ok(user) => Ok(user),
+            Err(e) => Err(e),
+        }
     }
 
     pub async fn delete(&self, id: ObjectId) -> bool {
@@ -94,5 +97,20 @@ impl UserRepository {
 
     fn get_hashed_password(&self, password: &str) -> String {
         hash(password, DEFAULT_COST).unwrap().to_string()
+    }
+
+    async fn create_index(&self) -> Result<(), mongodb::error::Error> {
+        let index_options = mongodb::options::IndexOptions::builder()
+            .unique(true)
+            .build();
+
+        let index_model = IndexModel::builder()
+            .keys(doc! { "email": 1 })
+            .options(index_options)
+            .build();
+
+        let result = self.collection.create_index(index_model, None).await?;
+
+        Ok(())
     }
 }
