@@ -4,8 +4,7 @@ use actix_web::{
     App, HttpServer,
 };
 use bellatrix::{
-    config::cors::get_cors,
-    database::{mongo_db::MongoDb, repositories::Repositories},
+    config::{cors::get_cors, data::get_repositories},
     routes::{config::config, not_found::not_found},
 };
 
@@ -14,14 +13,8 @@ async fn main() -> std::io::Result<()> {
     dotenv::dotenv().ok();
     env_logger::init();
 
-    let mongodb = MongoDb::init().await;
-    let client = mongodb.get_client();
-    let db = client.database("bellatrix");
-    let repositories = Repositories::new(db)
-        .await
-        .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
+    let repositories = get_repositories().await.unwrap();
 
-    // Enable the Cors
     HttpServer::new(move || {
         App::new()
             .app_data(Data::new(repositories.clone()))

@@ -27,6 +27,16 @@ impl UserRepository {
         self.collection.find_one(filter, None).await.unwrap()
     }
 
+    /// Returns a vector of all users in the database, starting from the specified index and returning at most the specified number of users.
+    ///
+    /// # Arguments
+    ///
+    /// * `start` - The index of the first user to return.
+    /// * `limit` - The maximum number of users to return.
+    ///
+    /// # Returns
+    ///
+    /// A vector of users.
     pub async fn get_all(&self, start: i64, limit: i64) -> Vec<User> {
         let options = FindOptions::builder()
             .sort(doc! { "username": 1 })
@@ -109,7 +119,7 @@ impl UserRepository {
             .options(index_options)
             .build();
 
-        let result = self.collection.create_index(index_model, None).await?;
+        self.collection.create_index(index_model, None).await?;
 
         Ok(())
     }
