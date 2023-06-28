@@ -1,6 +1,7 @@
 use crate::models::user::{CreateUserDto, UpdateUserDto, User};
 use bcrypt::{hash, verify, DEFAULT_COST};
 use bson::{doc, oid::ObjectId, to_document};
+use chrono::prelude::*;
 use futures::StreamExt;
 use mongodb::{
     error::Error, options::FindOptions, results::InsertOneResult, Collection, IndexModel,
@@ -67,6 +68,8 @@ impl UserRepository {
             email: create_user_dto.email,
             profile_picture: create_user_dto.profile_picture,
             password: self.get_hashed_password(&create_user_dto.password),
+            created_at: Some(Utc::now()),
+            updated_at: Some(Utc::now()),
         };
 
         match self.collection.insert_one(create_user_dto, None).await {
@@ -83,6 +86,9 @@ impl UserRepository {
 
     pub async fn update(&self, id: ObjectId, update_user_dto: UpdateUserDto) -> bool {
         let filter = doc! { "_id": id };
+
+        let mut update_user_dto = update_user_dto;
+        update_user_dto.updated_at = Some(Utc::now());
 
         let update = to_document(&update_user_dto).unwrap();
 
