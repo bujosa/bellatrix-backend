@@ -1,12 +1,11 @@
 use actix_web::{get, Responder};
+use serde_json::json;
 
-use crate::models::response::Response;
+use crate::utils::http_response_builder::build_http_response;
 
 #[get("")]
 pub async fn healthcheck() -> impl Responder {
-    let response = Response {
-        status: "success".to_string(),
-        message: "Everything is working fine".to_string(),
-    };
-    actix_web::HttpResponse::Ok().json(response)
+    build_http_response(json!({
+        "message": "Server is running"
+    }))
 }

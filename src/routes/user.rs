@@ -8,6 +8,10 @@ use crate::{
     database::repositories::Repositories,
     models::user::{CreateUserDto, UpdateUserDto},
     repository::user::UserRepository,
+    utils::{
+        http_response_builder::{build_bad_http_response, build_http_response},
+        mongo_error_builder::map_mongo_error,
+    },
 };
 
 #[post("/register")]
@@ -20,19 +24,11 @@ async fn register(data: web::Data<Repositories>, req: web::Json<CreateUserDto>) 
     match user {
         Ok(result) => {
             let id = result.inserted_id.as_object_id().unwrap().to_hex();
-            HttpResponse::Created().json(json!({
-                "status": "success",
-                "data": {
-                    "id": id
-                }
-            }))
+            build_http_response(json!({ "id": id }))
         }
         Err(e) => {
-            if e.to_string().contains("E11000") {
-                return HttpResponse::BadRequest()
-                    .json(json!({ "status": "error","message": "Email already exists" }));
-            }
-            HttpResponse::InternalServerError().finish()
+            let error_message = map_mongo_error(e);
+            build_bad_http_response(json!({ "message": error_message }))
         }
     }
 }
@@ -57,11 +53,9 @@ async fn get_user(data: web::Data<Repositories>, id: web::Path<String>) -> impl 
     let object_id = ObjectId::from_str(&id).unwrap();
     let user_repo = data.user_repository.clone();
     let user = user_repo.get(object_id).await;
+
     match user {
-        Some(user) => HttpResponse::Ok().json(json!({
-            "status": "success",
-            "data": user,
-        })),
+        Some(user) => build_http_response(user),
         None => HttpResponse::NotFound().finish(),
     }
 }
@@ -110,19 +104,13 @@ async fn get_all_users(
 
     let users = user_repo.get_all(start, limit).await;
 
-    HttpResponse::Ok().json(json!({
-        "status": "success",
-        "data": users,
-    }))
+    build_http_response(users)
 }
 
 #[get("")]
 async fn get_all_users_without_params(data: web::Data<Repositories>) -> impl Responder {
     let users = data.user_repository.get_all(0, 10).await;
-    HttpResponse::Ok().json(json!({
-        "status": "success",
-        "data": users,
-    }))
+    build_http_response(users)
 }
 
 pub fn user_routes() -> Scope {
