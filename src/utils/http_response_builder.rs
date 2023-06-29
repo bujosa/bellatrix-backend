@@ -51,3 +51,40 @@ where
     };
     HttpResponse::NotFound().json(json!(response_data))
 }
+
+pub fn build_unauthorized_http_response<T>(data: T) -> HttpResponse
+where
+    T: Serialize,
+{
+    let response_data = ResponseData {
+        status: "error".to_string(),
+        data,
+    };
+    HttpResponse::Unauthorized().json(json!(response_data))
+}
+
+pub fn build_forbidden_http_response<T>(data: T) -> HttpResponse
+where
+    T: Serialize,
+{
+    let response_data = ResponseData {
+        status: "error".to_string(),
+        data,
+    };
+    HttpResponse::Forbidden().json(json!(response_data))
+}
+
+pub fn build_conflict_http_response<T>(data: T) -> HttpResponse
+where
+    T: Serialize,
+{
+    let response_data = ResponseData {
+        status: "error".to_string(),
+        data,
+    };
+    HttpResponse::Conflict().json(json!(response_data))
+}
+
+pub fn build_no_content_http_response() -> HttpResponse {
+    HttpResponse::NoContent().finish()
+}
