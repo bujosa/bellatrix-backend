@@ -10,11 +10,8 @@ use crate::{
     repository::user::UserRepository,
 };
 
-#[post("")]
-async fn create_user(
-    data: web::Data<Repositories>,
-    req: web::Json<CreateUserDto>,
-) -> impl Responder {
+#[post("/register")]
+async fn register(data: web::Data<Repositories>, req: web::Json<CreateUserDto>) -> impl Responder {
     let create_user_dto: CreateUserDto = req.into_inner();
     let user_repo: UserRepository = data.user_repository.clone();
     let user: Result<mongodb::results::InsertOneResult, mongodb::error::Error> =
@@ -23,11 +20,17 @@ async fn create_user(
     match user {
         Ok(result) => {
             let id = result.inserted_id.as_object_id().unwrap().to_hex();
-            HttpResponse::Created().json(json!({ "id": id }))
+            HttpResponse::Created().json(json!({
+                "status": "success",
+                "data": {
+                    "id": id
+                }
+            }))
         }
         Err(e) => {
             if e.to_string().contains("E11000") {
-                return HttpResponse::BadRequest().json(json!({ "error": "Email already exists" }));
+                return HttpResponse::BadRequest()
+                    .json(json!({ "status": "error","message": "Email already exists" }));
             }
             HttpResponse::InternalServerError().finish()
         }
@@ -115,7 +118,7 @@ async fn get_all_users_without_params(data: web::Data<Repositories>) -> impl Res
 
 pub fn user_routes() -> Scope {
     web::scope("/users")
-        .service(create_user)
+        .service(register)
         .service(get_user)
         .service(delete_user)
         .service(update_user)
