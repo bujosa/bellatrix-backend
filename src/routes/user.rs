@@ -53,25 +53,29 @@ async fn login(data: web::Data<Repositories>, req: web::Json<CreateUserDto>) -> 
 
 #[get("/{id}")]
 async fn get_user(data: web::Data<Repositories>, id: web::Path<String>) -> impl Responder {
-    let object_id = ObjectId::from_str(&id).unwrap();
+    let object_id = ObjectId::from_str(&id).expect("Invalid User ID");
     let user_repo = data.user_repository.clone();
     let user = user_repo.get(object_id).await;
 
     match user {
         Some(user) => build_http_response(user),
-        None => HttpResponse::NotFound().finish(),
+        None => build_not_found_http_response(json!({
+            "message": "User not found"
+        })),
     }
 }
 
 #[delete("/{id}")]
 async fn delete_user(data: web::Data<Repositories>, id: web::Path<String>) -> impl Responder {
-    let object_id = ObjectId::from_str(&id).unwrap();
+    let object_id = ObjectId::from_str(&id).expect("Invalid User ID");
     let user_repo = data.user_repository.clone();
     let deleted = user_repo.delete(object_id).await;
-    if deleted {
-        HttpResponse::NoContent().finish()
-    } else {
-        HttpResponse::NotFound().finish()
+
+    match deleted {
+        true => build_no_content_http_response(),
+        false => build_not_found_http_response(json!({
+            "message": "User not found"
+        })),
     }
 }
 
@@ -81,7 +85,7 @@ async fn update_user(
     id: web::Path<String>,
     req: web::Json<UpdateUserDto>,
 ) -> impl Responder {
-    let object_id = ObjectId::from_str(&id).unwrap(); // Return early if the ID is invalid
+    let object_id = ObjectId::from_str(&id).expect("Invalid User ID");
 
     let user_repo = data.user_repository.clone();
     let updated = user_repo.update(object_id, req.into_inner()).await;
