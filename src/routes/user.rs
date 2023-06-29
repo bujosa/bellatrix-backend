@@ -5,11 +5,15 @@ use bson::oid::ObjectId;
 use serde_json::json;
 
 use crate::{
+    constants::default_page_size::DEFAULT_PAGE_SIZE,
     database::repositories::Repositories,
     models::user::{CreateUserDto, UpdateUserDto},
     repository::user::UserRepository,
     utils::{
-        http_response_builder::{build_bad_http_response, build_http_response},
+        http_response_builder::{
+            build_bad_http_response, build_http_response, build_no_content_http_response,
+            build_not_found_http_response,
+        },
         mongo_error_builder::map_mongo_error,
     },
 };
@@ -18,8 +22,7 @@ use crate::{
 async fn register(data: web::Data<Repositories>, req: web::Json<CreateUserDto>) -> impl Responder {
     let create_user_dto: CreateUserDto = req.into_inner();
     let user_repo: UserRepository = data.user_repository.clone();
-    let user: Result<mongodb::results::InsertOneResult, mongodb::error::Error> =
-        user_repo.create(create_user_dto).await;
+    let user = user_repo.create(create_user_dto).await;
 
     match user {
         Ok(result) => {
@@ -78,18 +81,16 @@ async fn update_user(
     id: web::Path<String>,
     req: web::Json<UpdateUserDto>,
 ) -> impl Responder {
-    let object_id = ObjectId::from_str(&id).unwrap();
-
-    let update_user_dto: UpdateUserDto = req.into_inner();
+    let object_id = ObjectId::from_str(&id).unwrap(); // Return early if the ID is invalid
 
     let user_repo = data.user_repository.clone();
+    let updated = user_repo.update(object_id, req.into_inner()).await;
 
-    let updated = user_repo.update(object_id, update_user_dto).await;
-
-    if updated {
-        HttpResponse::NoContent().finish()
-    } else {
-        HttpResponse::NotFound().finish()
+    match updated {
+        true => build_no_content_http_response(),
+        false => build_not_found_http_response(json!({
+            "message": "User not found"
+        })),
     }
 }
 
@@ -109,7 +110,7 @@ async fn get_all_users(
 
 #[get("")]
 async fn get_all_users_without_params(data: web::Data<Repositories>) -> impl Responder {
-    let users = data.user_repository.get_all(0, 10).await;
+    let users = data.user_repository.get_all(0, DEFAULT_PAGE_SIZE).await;
     build_http_response(users)
 }
 
