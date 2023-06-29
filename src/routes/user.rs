@@ -58,7 +58,10 @@ async fn get_user(data: web::Data<Repositories>, id: web::Path<String>) -> impl 
     let user_repo = data.user_repository.clone();
     let user = user_repo.get(object_id).await;
     match user {
-        Some(user) => HttpResponse::Ok().json(user),
+        Some(user) => HttpResponse::Ok().json(json!({
+            "status": "success",
+            "data": user,
+        })),
         None => HttpResponse::NotFound().finish(),
     }
 }
@@ -107,13 +110,19 @@ async fn get_all_users(
 
     let users = user_repo.get_all(start, limit).await;
 
-    HttpResponse::Ok().json(users)
+    HttpResponse::Ok().json(json!({
+        "status": "success",
+        "data": users,
+    }))
 }
 
 #[get("")]
 async fn get_all_users_without_params(data: web::Data<Repositories>) -> impl Responder {
     let users = data.user_repository.get_all(0, 10).await;
-    HttpResponse::Ok().json(users)
+    HttpResponse::Ok().json(json!({
+        "status": "success",
+        "data": users,
+    }))
 }
 
 pub fn user_routes() -> Scope {
