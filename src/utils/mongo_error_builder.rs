@@ -32,3 +32,15 @@ fn extract_duplicate_value(error_message: &str) -> Result<String, String> {
         Err("No duplicate value found".to_string())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_extract_duplicate_value() {
+        let error_message = "E11000 duplicate key error collection: test.users index: email_1 dup key: { email: \"test@test\" }";
+        let result = extract_duplicate_value(error_message).unwrap();
+        assert_eq!(result, "email with value test@test already exists");
+    }
+}
